@@ -17,6 +17,7 @@ include_once(INCLUDE_DIR.'class.dept.php');
 include_once(INCLUDE_DIR.'class.mail.php');
 include_once(INCLUDE_DIR.'class.mailer.php');
 include_once(INCLUDE_DIR.'class.oauth2.php');
+include_once(INCLUDE_DIR.'class.mime.php');
 include_once(INCLUDE_DIR.'class.mailfetch.php');
 include_once(INCLUDE_DIR.'class.mailparse.php');
 include_once(INCLUDE_DIR.'api.tickets.php');
