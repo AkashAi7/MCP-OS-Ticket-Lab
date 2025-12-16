@@ -412,7 +412,7 @@ namespace osTicket\Mail {
                     return true;
                 } elseif (preg_match('/^-ERR (.*+)$/i',
                             $response, $matches)) {
-                    throw new Exception($matches[2]);
+                    throw new Exception($matches[1]);
                 } else {
                     break;
                 }
