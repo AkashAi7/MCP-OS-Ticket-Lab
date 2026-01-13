@@ -2569,26 +2569,26 @@ class DatetimeField extends FormField {
                 "{$name}__lte" =>  $right->format('Y-m-d H:i:s'),
             ));
         case 'ndaysago':
-            $int = $intervals[$value['int'] ?: 'd'] ?: 'DAY';
+            $int = $intervals[(string) $value['int'] ?: 'd'] ?: 'DAY';
             $interval = new SqlInterval($int, $value['until']);
             return new Q(array(
                 "{$name}__range" => array($now->minus($interval), $now),
             ));
         case 'ndays':
-            $int = $intervals[$value['int'] ?: 'd'] ?: 'DAY';
+            $int = $intervals[(string) $value['int'] ?: 'd'] ?: 'DAY';
             $interval = new SqlInterval($int, $value['until']);
             return new Q(array(
                 "{$name}__range" => array($now, $now->plus($interval)),
             ));
         // Distant past and future ranges
         case 'distpast':
-            $int = $intervals[$value['int'] ?: 'd'] ?: 'DAY';
+            $int = $intervals[(string) $value['int'] ?: 'd'] ?: 'DAY';
             $interval = new SqlInterval($int, $value['until']);
             return new Q(array(
                 "{$name}__lte" => $now->minus($interval),
             ));
         case 'distfut':
-            $int = $intervals[$value['int'] ?: 'd'] ?: 'DAY';
+            $int = $intervals[(string) $value['int'] ?: 'd'] ?: 'DAY';
             $interval = new SqlInterval($int, $value['until']);
             return new Q(array(
                 "{$name}__gte" => $now->plus($interval),
