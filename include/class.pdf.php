@@ -46,9 +46,11 @@ class mPDFWithLocalImages extends Mpdf {
         );
         // unregister phar stream to mitigate vulnerability in mpdf library
        @stream_wrapper_unregister('phar');
+       @stream_wrapper_unregister('php');
        call_user_func_array(array('parent', 'WriteHtml'), $args);
        // restore phar stream
        @stream_wrapper_restore('phar');
+       @stream_wrapper_restore('php');
     }
 
     function output($name = '', $dest = '') {

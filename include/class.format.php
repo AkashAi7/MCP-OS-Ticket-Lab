@@ -357,9 +357,12 @@ class Format {
         if ($cfg)
             $whitelist = $cfg->getIframeWhitelist();
         if (!empty($whitelist)) {
+            $whitelist_quoted = array_map(function ($d) {
+                return preg_quote($d, '`');
+            }, $whitelist);
             $config['elements'] .= '+iframe';
             $config['spec'] = 'iframe=-*,height,width,type,style,src(match="`^(https?:)?//(www\.)?('
-                .implode('|', $whitelist)
+                .implode('|', $whitelist_quoted)
                 .')(\?|/|#)([^@]*)$`i"),frameborder'.($options['spec'] ? '; '.$options['spec'] : '').',allowfullscreen';
         }
 
