@@ -278,6 +278,11 @@ class Format {
             $props = array();
             foreach ($styles as $i=>&$s) {
                 @list($prop, $val) = explode(':', $s);
+                // Strip all CSS url() usages in inline styles
+                if (preg_match('/\burl\s*\(/i', $val)) {
+                    unset($styles[$i]);
+                    continue;
+                }
                 if (isset($props[$prop])) {
                     unset($styles[$i]);
                     continue;
@@ -348,7 +353,7 @@ class Format {
             'comment' => 1, //Remove html comments (OUTLOOK LOVE THEM)
             'tidy' => -1,
             'elements' => '*-form-input-button',
-            'deny_attribute' => 'id, formaction, action, on*',
+            'deny_attribute' => 'id, formaction, action, srcset, on*',
             'schemes' => 'href: aim, feed, file, ftp, gopher, http, https, irc, mailto, news, nntp, sftp, ssh, telnet; *:file, http, https; src: cid, http, https, data',
             'hook_tag' => function($e, $a=0) { return Format::__html_cleanup($e, $a); },
         );
@@ -486,16 +491,17 @@ class Format {
         // Allowed Inline External Image Extensions
         $allowed = array('gif', 'png', 'jpg', 'jpeg');
         $exclude = !$cfg->allowExternalImages();
-        $local = false;
 
-        $input = preg_replace_callback('/<img ([^>]*?)(src="([^"]+)")([^>]*)\/?>/',
-            function($match) use ($local, $allowed, $exclude, $display) {
-                if (strpos($match[3], 'cid:') !== false)
-                    $local = true;
+        $input = preg_replace_callback('/<img\b([^>]*?)\bsrc\s*=\s*(["\'])(.*?)\2([^>]*)\/?>/i',
+            function($match) use ($allowed, $exclude, $display) {
+                $src = $match[3];
+
+                // CID is only valid if it is the prefix of the src value
+                $local = (stripos(ltrim($src), 'cid:') === 0);
 
                 // Split the src URL and get the extension
-                $part = parse_url($match[3], PHP_URL_PATH);
-                $path = explode('.', $part);
+                $part = parse_url($src, PHP_URL_PATH);
+                $path = explode('.', (string) $part);
                 $ext = preg_split('/[^A-Za-z]/', end($path))[0];
 
                 if (!$local && (($exclude && $display) || !in_array($ext, $allowed)))
@@ -503,7 +509,8 @@ class Format {
                 else
                     return $match[0];
             },
-            $input);
+            $input
+        );
 
         return $input;
     }
