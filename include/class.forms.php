@@ -5247,6 +5247,8 @@ class FileUploadWidget extends Widget {
     );
 
     function render($options=array()) {
+        global $ost;
+
         $config = $this->field->getConfiguration();
         $name = $this->field->getFormName();
         $id = substr(md5(spl_object_hash($this)), 10);
@@ -5332,6 +5334,7 @@ class FileUploadWidget extends Widget {
           url: 'ajax.php/form/upload/<?php echo $field_id; ?>',
           link: $('#<?php echo $id; ?>').find('a.manual'),
           paramname: 'upload[]',
+          data: {"__CSRFToken__": "<?php echo $ost->getCSRF()->getToken(); ?>"},
           fallback_id: 'file-<?php echo $id; ?>',
           allowedfileextensions: <?php echo JsonDataEncoder::encode(
             $config['__extensions'] ?: array()); ?>,
