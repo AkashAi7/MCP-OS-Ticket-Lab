@@ -422,7 +422,7 @@ class DatabaseSessionRecord extends VerySimpleModel
         }
         catch (DoesNotExist $e) {
             // We're auto-creating model (unsaved) when one doesn't exist?
-            $record = $autocreate ? self::create($id) : null;
+            $record = ($autocreate && ctype_alnum($id)) ? self::create($id) : null;
         }
         catch (OrmException | Exception $ex) {
             // This could happen if more than one record exits in the
