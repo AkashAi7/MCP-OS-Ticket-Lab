@@ -1,3 +1,12 @@
+osTicket v1.18.3
+================
+### Enhancements
+* mPDF: Upgrade To v8.2.7 (39cdd2b1)
+* htmLawed: Upgrade To 1.2.15 (877adf56)
+
+### Security
+* security: Latest Patches 01/2026 (c646c8cb, d1b634a9, 6852e719, 8db4d377, 1552cfa3, d832f243)
+
 osTicket v1.18.2
 ================
 ### Improvements
