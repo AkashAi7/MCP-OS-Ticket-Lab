@@ -1105,7 +1105,7 @@ class MailBoxAccount extends EmailAccount {
         return $this->getMailBox($creds);
     }
 
-    public function getMailBox(osTicket\Mail\AuthCredentials $cred=null) {
+    public function getMailBox(?osTicket\Mail\AuthCredentials $cred=null) {
         if (!isset($this->mailbox) || $cred) {
             $this->cred = $cred ?: $this->getFreshCredentials();
             $setting = $this->getAccountSetting();
@@ -1310,7 +1310,7 @@ class SmtpAccount extends EmailAccount {
         return $this->smtp;
     }
 
-    public function getSmtp(osTicket\Mail\AuthCredentials $cred=null) {
+    public function getSmtp(?osTicket\Mail\AuthCredentials $cred=null) {
         if (!isset($this->smtp) || $cred) {
             $this->cred = $cred ?: $this->getFreshCredentials();
             if ($this->cred) {
