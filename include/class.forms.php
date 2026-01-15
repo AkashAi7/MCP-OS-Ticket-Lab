@@ -3997,7 +3997,8 @@ class FileUploadField extends FormField {
         // Check invalid image hacks
         if ($file['tmp_name']
                 && stripos($file['type'], 'image/') === 0
-                && !exif_imagetype($file['tmp_name']))
+                && !(exif_imagetype($file['tmp_name'])
+                    || mime_content_type($file['tmp_name']) === 'image/svg+xml'))
             return false;
 
         return true;
