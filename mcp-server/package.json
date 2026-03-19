@@ -1,0 +1,22 @@
+{
+  "name": "osticket-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for osTicket integration - enables AI assistants to manage support tickets",
+  "main": "server.py",
+  "scripts": {
+    "start": "python server.py"
+  },
+  "keywords": [
+    "mcp",
+    "osticket",
+    "support",
+    "helpdesk",
+    "tickets"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "mcp": "^1.0.0",
+    "httpx": "^0.27.0"
+  }
+}

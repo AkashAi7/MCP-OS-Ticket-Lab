@@ -1,0 +1,72 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: osticket-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: osticket
+      MYSQL_USER: osticket
+      MYSQL_PASSWORD: osticket123
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uosticket", "-posticket123"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - osticket-network
+
+  osticket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: osticket-local:latest
+    container_name: osticket-web
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_DATABASE=osticket
+      - MYSQL_USER=osticket
+      - MYSQL_PASSWORD=osticket123
+      - MYSQL_PREFIX=ost_
+      - OST_LOCAL_SECRET_SALT=H0leyTT06xifGvsdDpYD7VupNviICd3r
+      - OST_LOCAL_ADMIN_EMAIL=admin@local.test
+      - OST_LOCAL_DBHOST=mysql
+      - OST_LOCAL_DBNAME=osticket
+      - OST_LOCAL_DBUSER=osticket
+      - OST_LOCAL_DBPASS=osticket123
+      - OST_LOCAL_DBPREFIX=ost_
+    networks:
+      - osticket-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: osticket-phpmyadmin
+    restart: always
+    depends_on:
+      - mysql
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: osticket
+      PMA_PASSWORD: osticket123
+    networks:
+      - osticket-network
+
+volumes:
+  mysql_data:
+
+networks:
+  osticket-network:
+    driver: bridge

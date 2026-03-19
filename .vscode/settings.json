@@ -1,0 +1,16 @@
+{
+  "github.copilot.chat.mcp.servers": {
+    "osticket": {
+      "command": "python",
+      "args": [
+        "${workspaceFolder}/mcp-server/server.py"
+      ],
+      "env": {
+        "OSTICKET_URL": "http://localhost:8080",
+        "OSTICKET_BACKEND": "local",
+        "OSTICKET_DOCKER_PROJECT_DIR": "${workspaceFolder}",
+        "DOCKER_EXE": "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"
+      }
+    }
+  }
+}

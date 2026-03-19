@@ -1,23 +1,253 @@
-osTicket
-========
-<a href="https://osticket.com"><img height="80px" width="80px" src="images/favicon.png"
-align="left" hspace="10" vspace="6"></a>
+# MCP osTicket Lab
 
-**osTicket** is a widely-used open source support ticket system. It seamlessly
-integrates inquiries created via email, phone and web-based forms into a
-simple easy-to-use multi-user web interface. Manage, organize and archive
-all your support requests and responses in one place while providing your
-customers with accountability and responsiveness they deserve.
+> **Learn Model Context Protocol (MCP) by building an AI-powered support ticket system**
 
-How osTicket works for you
---------------------------
-  1. Users create tickets via your website, email, or phone
-  1. Incoming tickets are saved and assigned to agents
-  1. Agents help your users resolve their issues
+<a href="https://osticket.com"><img height="80px" width="80px" src="images/favicon.png" align="left" hspace="10" vspace="6"></a>
 
-osTicket is an attractive alternative to higher-cost and complex customer
-support systems; simple, lightweight, reliable, open source, web-based and
-easy to setup and use. The best part is, it's completely free.
+This repository provides a complete hands-on learning environment for **Model Context Protocol (MCP)** development using **osTicket** as a real-world application. You'll learn to build MCP servers from scratch, integrate them with AI assistants, and create production-ready tools.
+
+<br clear="left"/>
+
+---
+
+## 🚀 One-Click Quick Start
+
+Get osTicket running locally with MCP integration in 2 simple steps:
+
+### Step 1: Install osTicket
+```powershell
+.\install-local.cmd
+```
+This will:
+- Start Docker containers (osTicket, MySQL, phpMyAdmin)
+- Install and configure osTicket automatically
+- Create admin account: `ostadmin` / `ChangeMe123!`
+
+### Step 2: Prepare MCP Integration
+```powershell
+.\prepare-mcp-local.cmd
+```
+This will:
+- Validate osTicket installation
+- Install Python MCP dependencies
+- Test the MCP server
+- Register with VS Code
+
+**That's it!** 🎉 You now have:
+- ✅ osTicket running at http://localhost:8080
+- ✅ Staff panel at http://localhost:8080/scp
+- ✅ phpMyAdmin at http://localhost:8081
+- ✅ MCP server ready for VS Code Copilot
+
+---
+
+## 📚 Learning Labs
+
+Two comprehensive lab tracks with exercises, challenges, and solutions:
+
+| Lab | Duration | Level | Focus |
+|-----|----------|-------|-------|
+| **[Lab 1: MCP Fundamentals](labs/01_MCP_FUNDAMENTALS_LAB.md)** | 4-6 hours | Beginner → Advanced | MCP concepts, tools, resources, testing |
+| **[Lab 2: osTicket MCP Development](labs/02_OSTICKET_MCP_LAB.md)** | 6-8 hours | Intermediate → Advanced | Real-world MCP server, Docker integration |
+
+**Quick References:**
+- [Lab Overview & Learning Path](labs/README.md)
+- [MCP Development Cheat Sheet](labs/MCP_CHEAT_SHEET.md)
+
+---
+
+## 🎯 What You'll Learn
+
+### Lab 1: MCP Fundamentals
+- ✅ Build your first MCP server (Hello World)
+- ✅ Define tools with JSON Schema validation
+- ✅ Create resources and prompts
+- ✅ Integrate with VS Code Copilot
+- ✅ Handle external APIs (Weather API example)
+- ✅ Implement error handling and testing
+- ✅ Build production-ready MCP solutions
+
+### Lab 2: osTicket MCP Development
+- ✅ Set up osTicket locally with Docker
+- ✅ Understand osTicket architecture and API
+- ✅ Build PHP helper scripts for osTicket
+- ✅ Create an MCP server for ticket operations
+- ✅ Test MCP integration end-to-end
+- ✅ Extend with custom tools and features
+
+---
+
+## 📋 Prerequisites
+
+| Component | Version | Check Command |
+|-----------|---------|---------------|
+| **Docker Desktop** | Latest | `docker --version` |
+| **Python** | 3.10+ | `python --version` |
+| **VS Code** | Latest | `code --version` |
+| **Git** | Any | `git --version` |
+
+**Python Packages:**
+```powershell
+pip install mcp>=1.0.0 httpx>=0.27.0
+```
+
+**See full requirements:** [Requirements Guide](labs/README.md#prerequisites-checklist)
+
+---
+
+## 🏗️ Repository Structure
+
+```
+MCP-OS-Ticket-Lab/
+├── README.md                          # This file
+├── install-local.cmd                  # One-click osTicket setup
+├── prepare-mcp-local.cmd              # One-click MCP preparation
+├── DOCKER_SETUP.md                    # Detailed Docker setup guide
+│
+├── labs/                              # 📚 Learning Labs
+│   ├── README.md                      # Lab index & learning path
+│   ├── 01_MCP_FUNDAMENTALS_LAB.md     # Lab 1: MCP basics to advanced
+│   ├── 02_OSTICKET_MCP_LAB.md         # Lab 2: osTicket MCP development
+│   └── MCP_CHEAT_SHEET.md             # Quick reference guide
+│
+├── mcp-server/                        # 🔧 MCP Server Implementation
+│   ├── server.py                      # Main MCP server
+│   ├── test.py                        # MCP validation tests
+│   └── requirements.txt               # Python dependencies
+│
+├── mcp_*.php                          # PHP helper scripts for osTicket
+├── docker-compose.yml                 # Docker orchestration
+├── Dockerfile                         # osTicket container image
+└── [osTicket core files]              # osTicket application files
+```
+
+---
+
+## 🎓 Learning Path
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  START HERE: One-Click Setup                                │
+│  .\install-local.cmd                                        │
+│  .\prepare-mcp-local.cmd                                    │
+└────────────────┬────────────────────────────────────────────┘
+                 │
+        ┌────────▼────────┐
+        │   Choose Path   │
+        └────┬──────┬─────┘
+             │      │
+    ┌────────▼──┐  │
+    │  Lab 1    │  │  Beginner? Start with MCP Fundamentals
+    │  MCP      │  │  Learn concepts, build simple servers
+    │  Basics   │  │
+    └────────┬──┘  │
+             │     │
+             │  ┌──▼──────┐
+             │  │  Lab 2  │  Intermediate? Jump to osTicket
+             │  │ osTicket│  Build real-world MCP server
+             │  │   MCP   │
+             │  └────┬────┘
+             │       │
+        ┌────▼───────▼─────┐
+        │  MCP Expert! 🎉   │
+        │  Build your own   │
+        │  MCP projects     │
+        └───────────────────┘
+```
+
+---
+
+## 🔧 MCP Server Features
+
+The included MCP server provides these tools for osTicket:
+
+| Tool | Description |
+|------|-------------|
+| `create_ticket` | Create new support tickets |
+| `get_ticket` | Retrieve ticket details by number |
+| `reply_to_ticket` | Add replies or internal notes |
+| `create_user` | Create new osTicket users |
+| `get_osticket_status` | Check system status |
+
+**Test it in VS Code Copilot:**
+```
+@mcp create a ticket from john@example.com about password reset
+@mcp get details of ticket 123456
+@mcp reply to ticket 123456 saying we've resolved the issue
+```
+
+---
+
+## 🐳 Docker Quick Reference
+
+```powershell
+# Start osTicket
+docker compose up -d
+
+# Stop osTicket
+docker compose down
+
+# View logs
+docker logs osTicket-osticket
+
+# Restart containers
+docker compose restart
+
+# Access container shell
+docker compose exec osticket bash
+```
+
+---
+
+## 🆘 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port 8080 already in use | Stop other services or edit `docker-compose.yml` |
+| Docker won't start | Enable WSL2/Hyper-V, restart Docker Desktop |
+| MySQL connection refused | Wait 30 seconds after startup |
+| MCP server not found in VS Code | Reload window: `Ctrl+Shift+P` → "Reload Window" |
+
+**See detailed troubleshooting:** [DOCKER_SETUP.md](DOCKER_SETUP.md)
+
+---
+
+## 📖 Additional Resources
+
+- **osTicket Documentation:** https://docs.osticket.com
+- **MCP Specification:** https://modelcontextprotocol.io
+- **Python MCP SDK:** https://github.com/modelcontextprotocol/python-sdk
+- **Docker Documentation:** https://docs.docker.com
+
+---
+
+## 🤝 Contributing
+
+This is a learning repository. Feel free to:
+- Add new lab exercises
+- Improve existing materials
+- Fix bugs or typos
+- Share your MCP server extensions
+
+---
+
+## 📜 License
+
+- osTicket core: GPL License (see [LICENSE.txt](LICENSE.txt))
+- Lab materials: MIT License
+- MCP server implementation: MIT License
+
+---
+
+## 🙏 Acknowledgments
+
+- **osTicket Team** - For the excellent open-source helpdesk system
+- **Anthropic** - For the Model Context Protocol specification
+- **GitHub Copilot** - For MCP integration capabilities
+
+---
+
+**Ready to start?** Run `.\install-local.cmd` and begin your MCP journey! 🚀
 
 Requirements
 ------------
