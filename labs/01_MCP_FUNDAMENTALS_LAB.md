@@ -13,6 +13,8 @@ By completing this lab, you will be able to:
 - Handle resources and prompts
 - Integrate MCP servers with VS Code Copilot
 - Debug and test MCP implementations
+- **Deploy MCP servers to Azure Container Apps**
+- **Create VS Code `.prompt.md` skills and `.instructions.md` files**
 - Build production-ready MCP solutions
 
 ---
@@ -1234,6 +1236,590 @@ if __name__ == "__main__":
 
 ---
 
+# Module 7: Deploying Your MCP Server to Azure (Simple)
+
+## 7.1 Why Deploy to Azure?
+
+A locally running MCP server only works on your machine over `stdio`. When you deploy to Azure, you expose it over HTTP + SSE (Server-Sent Events), so any Copilot client or teammate can reach it.
+
+```
+┌──────────────┐  HTTPS/SSE  ┌────────────────────────────┐
+│  VS Code /   │ ──────────► │  Azure Container Apps       │
+│  Any Client  │             │  (your MCP server)          │
+└──────────────┘             └────────────────────────────┘
+```
+
+---
+
+## Exercise 7.1: Switch from stdio → HTTP (SSE) Transport
+
+**Goal**: Make your MCP server reachable over HTTP so it can be deployed anywhere.
+
+### Step 1: Install extra dependencies
+
+```powershell
+pip install mcp[sse] uvicorn
+```
+
+### Step 2: Create `cloud_server.py`
+
+```python
+"""
+Exercise 7.1: HTTP/SSE MCP Server (cloud-ready)
+================================================
+Identical tools to the task manager, but served over HTTP
+so it can be deployed to Azure Container Apps.
+"""
+
+from mcp.server import Server
+from mcp.server.sse import SseServerTransport
+from mcp.types import Tool, TextContent
+import asyncio
+import json
+import os
+from datetime import datetime
+from pathlib import Path
+from starlette.applications import Starlette
+from starlette.routing import Route, Mount
+from starlette.responses import JSONResponse
+import uvicorn
+
+app = Server("task-manager-cloud")
+DATA_FILE = Path(os.environ.get("DATA_FILE", "tasks.json"))
+
+def load_tasks():
+    if DATA_FILE.exists():
+        with open(DATA_FILE) as f:
+            return json.load(f)
+    return {"tasks": [], "next_id": 1}
+
+def save_tasks(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2, default=str)
+
+@app.list_tools()
+async def list_tools():
+    return [
+        Tool(
+            name="add_task",
+            description="Add a new task",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "title":    {"type": "string", "description": "Task title"},
+                    "priority": {"type": "string", "enum": ["low", "medium", "high"], "default": "medium"}
+                },
+                "required": ["title"]
+            }
+        ),
+        Tool(
+            name="list_tasks",
+            description="List all tasks",
+            inputSchema={"type": "object", "properties": {}}
+        ),
+        Tool(
+            name="complete_task",
+            description="Mark a task as completed",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "task_id": {"type": "integer", "description": "Task ID"}
+                },
+                "required": ["task_id"]
+            }
+        )
+    ]
+
+@app.call_tool()
+async def call_tool(name: str, arguments: dict):
+    data = load_tasks()
+
+    if name == "add_task":
+        task = {
+            "id": data["next_id"],
+            "title": arguments["title"],
+            "priority": arguments.get("priority", "medium"),
+            "status": "pending",
+            "created_at": datetime.now().isoformat()
+        }
+        data["tasks"].append(task)
+        data["next_id"] += 1
+        save_tasks(data)
+        return [TextContent(type="text", text=f"✅ Task #{task['id']} created: {task['title']}")]
+
+    elif name == "list_tasks":
+        tasks = data["tasks"]
+        if not tasks:
+            return [TextContent(type="text", text="No tasks yet.")]
+        lines = [f"{'✅' if t['status']=='completed' else '⏳'} #{t['id']} [{t['priority']}] {t['title']}" for t in tasks]
+        return [TextContent(type="text", text="📋 Tasks:\n" + "\n".join(lines))]
+
+    elif name == "complete_task":
+        for task in data["tasks"]:
+            if task["id"] == arguments["task_id"]:
+                task["status"] = "completed"
+                save_tasks(data)
+                return [TextContent(type="text", text=f"✅ Task #{task['id']} completed!")]
+        return [TextContent(type="text", text=f"❌ Task #{arguments['task_id']} not found.")]
+
+    raise ValueError(f"Unknown tool: {name}")
+
+# ── SSE transport wiring ──────────────────────────────────────────────────────
+sse = SseServerTransport("/messages/")
+
+async def handle_sse(request):
+    async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+        await app.run(streams[0], streams[1], app.create_initialization_options())
+
+async def health(request):
+    return JSONResponse({"status": "ok", "server": "task-manager-cloud"})
+
+starlette_app = Starlette(
+    routes=[
+        Route("/health", health),
+        Route("/sse",    handle_sse),
+        Mount("/messages/", app=sse.handle_post_message),
+    ]
+)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(starlette_app, host="0.0.0.0", port=port)
+```
+
+### Step 3: Test locally first
+
+```powershell
+python cloud_server.py
+# Server starts on http://localhost:8000
+
+# In another terminal, verify health endpoint:
+curl http://localhost:8000/health
+# {"status": "ok", "server": "task-manager-cloud"}
+```
+
+### ✅ Checkpoint 7.1
+- [ ] Server starts with `uvicorn`
+- [ ] `/health` returns `{"status": "ok"}`
+- [ ] `/sse` endpoint is reachable
+
+---
+
+## Exercise 7.2: Containerize with Docker
+
+### Step 1: Create `Dockerfile`
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy server code
+COPY cloud_server.py .
+
+# Data directory (mounted as a volume in production)
+RUN mkdir -p /app/data
+ENV DATA_FILE=/app/data/tasks.json
+
+EXPOSE 8000
+
+CMD ["python", "cloud_server.py"]
+```
+
+### Step 2: Create `requirements.txt`
+
+```
+mcp[sse]>=1.0.0
+uvicorn>=0.30.0
+starlette>=0.37.0
+```
+
+### Step 3: Build and test the container
+
+```powershell
+# Build image
+docker build -t mcp-task-manager .
+
+# Run locally with a data volume
+docker run -p 8000:8000 -v ${PWD}/data:/app/data mcp-task-manager
+
+# Verify
+curl http://localhost:8000/health
+```
+
+### ✅ Checkpoint 7.2
+- [ ] Docker image builds without errors
+- [ ] Container runs and serves on port 8000
+- [ ] Data persists across container restarts via volume
+
+---
+
+## Exercise 7.3: Deploy to Azure Container Apps
+
+**Goal**: Push the container to Azure and get a public HTTPS endpoint in ~5 minutes.
+
+### Prerequisites
+```powershell
+# Install Azure CLI if needed
+winget install Microsoft.AzureCLI
+
+# Log in
+az login
+
+# Install Container Apps extension
+az extension add --name containerapp --upgrade
+```
+
+### Step 1: Create Azure resources
+
+```powershell
+# Set variables (change these to your own values)
+$RESOURCE_GROUP = "rg-mcp-demo"
+$LOCATION       = "eastus"
+$ACR_NAME       = "acrmcpdemo$(Get-Random -Maximum 9999)"   # must be globally unique
+$APP_NAME       = "mcp-task-manager"
+$ENV_NAME       = "mcp-env"
+
+# Create resource group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create Azure Container Registry
+az acr create `
+  --resource-group $RESOURCE_GROUP `
+  --name $ACR_NAME `
+  --sku Basic `
+  --admin-enabled true
+```
+
+### Step 2: Push your image to ACR
+
+```powershell
+# Build & push directly to ACR (no local Docker daemon needed)
+az acr build `
+  --registry $ACR_NAME `
+  --image mcp-task-manager:latest .
+
+# Get the registry credentials
+$ACR_PASSWORD = az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv
+$ACR_SERVER   = "$ACR_NAME.azurecr.io"
+```
+
+### Step 3: Create Container Apps environment and deploy
+
+```powershell
+# Create the Container Apps environment
+az containerapp env create `
+  --name $ENV_NAME `
+  --resource-group $RESOURCE_GROUP `
+  --location $LOCATION
+
+# Deploy the app
+az containerapp create `
+  --name $APP_NAME `
+  --resource-group $RESOURCE_GROUP `
+  --environment $ENV_NAME `
+  --image "$ACR_SERVER/mcp-task-manager:latest" `
+  --registry-server $ACR_SERVER `
+  --registry-username $ACR_NAME `
+  --registry-password $ACR_PASSWORD `
+  --target-port 8000 `
+  --ingress external `
+  --min-replicas 0 `
+  --max-replicas 3 `
+  --env-vars DATA_FILE="/tmp/tasks.json"
+
+# Get the public URL
+$APP_URL = az containerapp show `
+  --name $APP_NAME `
+  --resource-group $RESOURCE_GROUP `
+  --query "properties.configuration.ingress.fqdn" -o tsv
+
+Write-Host "✅ MCP Server deployed at: https://$APP_URL"
+```
+
+### Step 4: Verify deployment
+
+```powershell
+# Health check
+curl "https://$APP_URL/health"
+
+# View live logs
+az containerapp logs show `
+  --name $APP_NAME `
+  --resource-group $RESOURCE_GROUP `
+  --follow
+```
+
+### Step 5: Connect VS Code to your deployed server
+
+Add to `.vscode/settings.json`:
+
+```json
+{
+    "mcp": {
+        "servers": {
+            "task-manager-cloud": {
+                "url": "https://<YOUR_APP_URL>/sse"
+            }
+        }
+    }
+}
+```
+
+> **Note**: Replace `<YOUR_APP_URL>` with the FQDN printed in Step 3.  
+> The `url` key (instead of `command`) tells VS Code to connect to a remote SSE endpoint.
+
+### ✅ Checkpoint 7.3
+- [ ] Image pushed to ACR successfully
+- [ ] Container App shows `Running` state
+- [ ] `curl https://<APP_URL>/health` returns `{"status":"ok"}`
+- [ ] VS Code Copilot calls tools on the deployed server
+
+### 🧹 Cleanup (optional)
+
+```powershell
+# Remove all resources when done
+az group delete --name $RESOURCE_GROUP --yes --no-wait
+```
+
+### 🏆 Challenge 7
+- Add an Azure Storage Blob backend so tasks persist across container restarts
+- Enable Azure Managed Identity so no credentials are stored in environment variables
+- Add a GitHub Actions workflow that automatically rebuilds and redeploys on every `git push`
+
+---
+
+# Module 8: Custom Prompts & Skills for Your MCP Server
+
+## 8.1 What Are Prompts and Skills?
+
+| Concept | Where it lives | Purpose |
+|---------|---------------|---------|
+| **MCP Prompt** | Inside your MCP server | Pre-built conversation templates the AI invokes |
+| **VS Code `.prompt.md`** | `.github/prompts/` | Reusable slash-commands for Copilot Chat |
+| **VS Code `.instructions.md`** | `.github/instructions/` | Always-on rules that shape how Copilot behaves |
+
+This module covers all three so you can pick the right tool for the job.
+
+---
+
+## Exercise 8.1: Add a Prompt to Your MCP Server
+
+**Goal**: Expose a `task_review` prompt that primes the AI to analyse your task list.
+
+Add this block to `cloud_server.py` (after the `call_tool` handler):
+
+```python
+from mcp.types import Prompt, PromptArgument, PromptMessage
+
+@app.list_prompts()
+async def list_prompts():
+    return [
+        Prompt(
+            name="task_review",
+            description="Review all tasks and suggest what to tackle next",
+            arguments=[]           # no arguments needed – loads live data
+        ),
+        Prompt(
+            name="task_standup",
+            description="Generate a daily standup summary from the task list",
+            arguments=[
+                PromptArgument(
+                    name="your_name",
+                    description="Your name for the standup report",
+                    required=False
+                )
+            ]
+        )
+    ]
+
+@app.get_prompt()
+async def get_prompt(name: str, arguments: dict | None):
+    data = load_tasks()
+    tasks = data["tasks"]
+
+    if name == "task_review":
+        pending   = [t for t in tasks if t["status"] == "pending"]
+        completed = [t for t in tasks if t["status"] == "completed"]
+        task_list = "\n".join(
+            f"- #{t['id']} [{t['priority'].upper()}] {t['title']}" for t in pending
+        ) or "No pending tasks."
+
+        prompt_text = f"""
+You are a productivity coach reviewing my task list.
+
+## Pending Tasks ({len(pending)})
+{task_list}
+
+## Completed Tasks: {len(completed)}
+
+Please:
+1. Identify the highest-impact task to tackle first.
+2. Flag any tasks that look blocked or need more info.
+3. Suggest if any tasks can be batched or delegated.
+"""
+        return [PromptMessage(role="user", content=TextContent(type="text", text=prompt_text.strip()))]
+
+    elif name == "task_standup":
+        name_str  = (arguments or {}).get("your_name", "Team Member")
+        pending   = [t for t in tasks if t["status"] == "pending"]
+        completed = [t for t in tasks if t["status"] == "completed"]
+
+        prompt_text = f"""
+Generate a concise daily standup update for {name_str}.
+
+Completed:
+{chr(10).join(f"  ✅ {t['title']}" for t in completed) or "  (nothing yet)"}
+
+In Progress / Pending:
+{chr(10).join(f"  ⏳ [{t['priority']}] {t['title']}" for t in pending) or "  (nothing pending)"}
+
+Format it as: Yesterday | Today | Blockers
+Keep it under 5 bullet points total.
+"""
+        return [PromptMessage(role="user", content=TextContent(type="text", text=prompt_text.strip()))]
+
+    raise ValueError(f"Unknown prompt: {name}")
+```
+
+### Test the prompts in VS Code
+
+After restarting your MCP server, type in Copilot Chat:
+
+```
+Run the task_review prompt
+```
+
+or
+
+```
+Run the task_standup prompt with your_name = "Alice"
+```
+
+### ✅ Checkpoint 8.1
+- [ ] `list_prompts` returns `task_review` and `task_standup`
+- [ ] Copilot Chat invokes the prompts and returns useful output
+- [ ] Prompts reference live task data
+
+---
+
+## Exercise 8.2: Create a Reusable VS Code `.prompt.md` Skill
+
+**Goal**: Create a reusable slash-command in VS Code that automatically invokes your MCP tools.
+
+### Step 1: Create the prompts directory
+
+```powershell
+mkdir .github\prompts
+```
+
+### Step 2: Create `.github/prompts/manage-tasks.prompt.md`
+
+```markdown
+---
+mode: agent
+description: Manage my task list using the MCP task manager server
+tools:
+  - mcp_task_manager_add_task
+  - mcp_task_manager_list_tasks
+  - mcp_task_manager_complete_task
+---
+
+You are a focused task management assistant. You have access to these MCP tools:
+- `add_task` – create a new task (requires `title`, optional `priority`: low/medium/high)
+- `list_tasks` – list all tasks
+- `complete_task` – mark a task done by `task_id`
+
+## Rules
+- Always call `list_tasks` first so you know the current state before acting.
+- Confirm with the user before marking tasks as complete.
+- When adding multiple tasks from a list, add them one at a time and report each ID.
+- Keep responses short: one sentence per action taken.
+
+## User request
+{{input}}
+```
+
+### Step 3: Use the prompt
+
+In VS Code Copilot Chat:
+
+```
+/manage-tasks Add three tasks: write tests, update README, deploy to staging
+```
+
+Copilot will invoke the MCP `add_task` tool three times and report back.
+
+---
+
+## Exercise 8.3: Create a VS Code `.instructions.md` to Always Load MCP Context
+
+**Goal**: Create an always-on instruction file so Copilot automatically understands your MCP server without you repeating yourself.
+
+### Create `.github/instructions/mcp-task-manager.instructions.md`
+
+```markdown
+---
+applyTo: "**"
+---
+
+# Task Manager MCP – Context for GitHub Copilot
+
+This workspace includes a running MCP server called **task-manager** (or **task-manager-cloud** when deployed).
+
+## Available MCP Tools
+
+| Tool | Description | Required params |
+|------|-------------|-----------------|
+| `add_task` | Create a task | `title` (string) |
+| `list_tasks` | Show all tasks | none |
+| `complete_task` | Mark done | `task_id` (int) |
+
+## Available MCP Prompts
+
+| Prompt | Description |
+|--------|-------------|
+| `task_review` | AI-powered task prioritisation |
+| `task_standup` | Daily standup generator |
+
+## Conventions
+- Priority levels: `low` | `medium` | `high`  
+- Task IDs are sequential integers starting at 1.
+- Always call `list_tasks` to get current state before making changes.
+
+## Deployment
+- Local: `python cloud_server.py` → `http://localhost:8000/sse`
+- Azure: `https://<APP_URL>/sse` (set in `.vscode/settings.json`)
+```
+
+With `applyTo: "**"`, this instruction is included in every Copilot Chat session — no need to re-explain your MCP server each time.
+
+### ✅ Checkpoint 8.3
+- [ ] `.instructions.md` created with correct frontmatter
+- [ ] Copilot uses MCP tools without you explaining the schema
+- [ ] VS Code shows the instruction file in the Copilot context pane
+
+---
+
+## 8.4 Quick Reference: Choosing the Right Mechanism
+
+```
+Need the AI to run a canned workflow?
+  └─► MCP Prompt  (server-side, data-aware, returned via get_prompt)
+
+Need a slash-command that chains multiple tool calls?
+  └─► .prompt.md  (client-side, lives in .github/prompts/)
+
+Need Copilot to always know about your tools/conventions?
+  └─► .instructions.md  (always-on, lives in .github/instructions/)
+```
+
+---
+
 # Final Challenges
 
 ## 🏆 Challenge: Build a Complete Project Management MCP Server
@@ -1289,6 +1875,13 @@ Create an MCP server for project management with:
 - [ ] Module 4: Built Weather API integration
 - [ ] Module 5: Applied error handling patterns
 - [ ] Module 6: Wrote unit tests
+- [ ] Module 7: Switched server to HTTP/SSE transport
+- [ ] Module 7: Containerized server with Docker
+- [ ] Module 7: Deployed to Azure Container Apps
+- [ ] Module 7: Connected VS Code to remote MCP endpoint
+- [ ] Module 8: Added MCP Prompts (task_review, task_standup)
+- [ ] Module 8: Created `.prompt.md` slash-command skill
+- [ ] Module 8: Created `.instructions.md` always-on context
 - [ ] Final Challenge: Completed project management server
 
 **Congratulations on completing the MCP Fundamentals Lab!** 🎉
