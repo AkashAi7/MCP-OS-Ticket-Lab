@@ -3037,10 +3037,16 @@ async def handle_sse(request):
 async def health(request):
     return JSONResponse({"status": "ok", "server": "task-manager-cloud"})
 
+async def root_redirect(request):
+    """Redirect root to /sse so VS Code's streamable-HTTP probe gets a useful response."""
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url="/sse")
+
 starlette_app = Starlette(
     routes=[
-        Route("/health", health),
-        Route("/sse",    handle_sse),
+        Route("/",        root_redirect),
+        Route("/health",  health),
+        Route("/sse",     handle_sse),
         Mount("/messages/", app=sse.handle_post_message),
     ]
 )
@@ -3456,6 +3462,7 @@ Switch to **VS Code**. Open (or create) `.vscode/settings.json` and add:
     "mcp": {
         "servers": {
             "task-manager-cloud": {
+                "type": "sse",
                 "url": "https://<YOUR_APP_URL>/sse"
             }
         }
@@ -3465,7 +3472,14 @@ Switch to **VS Code**. Open (or create) `.vscode/settings.json` and add:
 
 Replace `<YOUR_APP_URL>` with the FQDN printed in Step 4 (e.g. `mcp-task-manager.nicefield-abc123.eastus.azurecontainerapps.io`).
 
-> **Note**: The `url` key (instead of `command`) tells VS Code to connect to a remote SSE endpoint rather than launching a local process.
+> **Critical**: You must include **both** `"type": "sse"` and the `/sse` path in the URL.
+> - `"type": "sse"` forces VS Code to use the legacy SSE transport directly instead of first probing for the newer streamable-HTTP transport at the root `/`. Without it, VS Code POSTs to `https://<APP_URL>/` first, gets a 404, and the connection fails.
+> - The URL must end with `/sse` — using the bare domain without the path also causes a 404.
+
+**Your exact entry** (replace the domain with your own):
+```json
+"url": "https://mcp-task-manager.agreeablepebble-67b5e2eb.eastus.azurecontainerapps.io/sse"
+```
 
 Reload VS Code (`Ctrl + Shift + P` → `Developer: Reload Window`), then open Copilot Chat and try:
 
