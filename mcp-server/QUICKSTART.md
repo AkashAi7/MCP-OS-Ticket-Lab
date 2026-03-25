@@ -69,7 +69,7 @@ Edit: `%APPDATA%\Claude\claude_desktop_config.json`
     "osticket": {
       "command": "python",
       "args": [
-        "C:\\Users\\akashdwivedi\\OneDrive - Microsoft\\Desktop\\IntrestingIdeas\\osTicket\\mcp-server\\server.py"
+        "C:\\path\\to\\MCP-OS-Ticket-Lab\\mcp-server\\server.py"
       ],
       "env": {
         "OSTICKET_URL": "http://localhost:8080",
@@ -79,6 +79,8 @@ Edit: `%APPDATA%\Claude\claude_desktop_config.json`
   }
 }
 ```
+
+> **Note:** Replace `C:\\path\\to\\MCP-OS-Ticket-Lab` with the actual path where you cloned this repository.
 
 **After adding the config:**
 1. Restart Claude Desktop

@@ -9,7 +9,9 @@
         "OSTICKET_URL": "http://localhost:8080",
         "OSTICKET_BACKEND": "local",
         "OSTICKET_DOCKER_PROJECT_DIR": "${workspaceFolder}",
-        "DOCKER_EXE": "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"
+        // On Windows, set DOCKER_EXE to the full path if "docker" is not on PATH,
+        // e.g. "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"
+        "DOCKER_EXE": "docker"
       }
     }
   }
