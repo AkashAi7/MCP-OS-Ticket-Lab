@@ -99,3 +99,6 @@ $RECYCLE.BIN/
 *.temp
 tmp/
 temp/
+
+# MCP server environment files (may contain secrets)
+mcp-server/.env

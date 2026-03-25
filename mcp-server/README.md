@@ -33,6 +33,15 @@ pip install -r requirements.txt
 
 ### 3. Set Environment Variables
 
+Copy the provided template and fill in your values:
+
+```bash
+cp .env.example .env
+# then edit .env with your settings
+```
+
+Or set variables directly in your shell:
+
 ```bash
 # Windows (PowerShell)
 $env:OSTICKET_URL = "http://localhost:8080"
@@ -42,6 +51,8 @@ $env:OSTICKET_API_KEY = "YOUR_API_KEY_HERE"
 export OSTICKET_URL="http://localhost:8080"
 export OSTICKET_API_KEY="YOUR_API_KEY_HERE"
 ```
+
+> **Note:** The `.env` file is listed in `.gitignore` — it will not be committed. Never commit real API keys to version control.
 
 ## Usage
 
@@ -64,7 +75,7 @@ Add to your Claude Desktop configuration file:
     "osticket": {
       "command": "python",
       "args": [
-        "C:\\Users\\akashdwivedi\\OneDrive - Microsoft\\Desktop\\IntrestingIdeas\\osTicket\\mcp-server\\server.py"
+        "C:\\path\\to\\MCP-OS-Ticket-Lab\\mcp-server\\server.py"
       ],
       "env": {
         "OSTICKET_URL": "http://localhost:8080",
@@ -74,6 +85,8 @@ Add to your Claude Desktop configuration file:
   }
 }
 ```
+
+> **Note:** Replace `C:\\path\\to\\MCP-OS-Ticket-Lab` with the actual path where you cloned this repository.
 
 ### Using with GitHub Copilot (VS Code)
 

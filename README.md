@@ -214,6 +214,15 @@ docker compose exec osticket bash
 
 ## 📖 Additional Resources
 
+**In this repository:**
+- [FAQ](FAQ.md) — Answers to common questions
+- [Architecture Overview](ARCHITECTURE.md) — How components fit together
+- [Docker Setup Guide](DOCKER_SETUP.md) — Detailed Docker instructions
+- [MCP Server Reference](mcp-server/README.md) — Tool documentation
+- [Contributing Guide](CONTRIBUTING.md) — How to extend the lab
+- [Security Policy](SECURITY.md) — Security considerations
+
+**External links:**
 - **osTicket Documentation:** https://docs.osticket.com
 - **MCP Specification:** https://modelcontextprotocol.io
 - **Python MCP SDK:** https://github.com/modelcontextprotocol/python-sdk
