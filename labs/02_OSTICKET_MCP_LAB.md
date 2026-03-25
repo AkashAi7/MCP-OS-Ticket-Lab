@@ -84,7 +84,7 @@ By completing this lab, you will be able to:
 
 ```powershell
 # Clone the osTicket repository with MCP setup
-git clone https://github.com/your-repo/osTicket.git
+git clone https://github.com/AkashAi7/MCP-OS-Ticket-Lab.git
 cd osTicket
 ```
 
