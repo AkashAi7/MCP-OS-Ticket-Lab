@@ -2925,6 +2925,8 @@ VS Code opens. Confirm the title bar shows `ex7-cloud-server`.
 ### Step 4: Create `cloud_server.py`
 
 In VS Code: `Ctrl + N`, save as **`cloud_server.py`** at the root of `ex7-cloud-server` (same level as `venv/`). Paste:
+
+```python
 """
 Exercise 7.1: HTTP/SSE MCP Server (cloud-ready)
 ================================================
